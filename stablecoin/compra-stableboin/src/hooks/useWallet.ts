@@ -27,10 +27,29 @@ export function useWallet() {
 
   const isCorrectChain = state.chainId === config.chainId;
 
+  const addEuroToken = useCallback(async () => {
+    if (!window.ethereum || !config.eurotokenAddress) return;
+    try {
+      await window.ethereum.request({
+        method: "wallet_watchAsset",
+        params: [
+          {
+            type: "ERC20",
+            options: {
+              address: config.eurotokenAddress,
+              symbol: "EURT",
+              decimals: 6,
+            },
+          },
+        ],
+      });
+    } catch {
+      // User rejected or token already added
+    }
+  }, []);
+
   const connect = useCallback(async () => {
-    console.log("connect() called", { ethereum: !!window.ethereum, window: typeof window });
     if (typeof window === "undefined" || !window.ethereum) {
-      console.error("MetaMask not detected");
       setState((s) => ({ ...s, error: "MetaMask no esta instalado" }));
       return;
     }
@@ -58,6 +77,8 @@ export function useWallet() {
         error: null,
       });
 
+      addEuroToken();
+
       if (Number(network.chainId) !== config.chainId) {
         try {
           await window.ethereum.request({
@@ -78,7 +99,7 @@ export function useWallet() {
         error: err instanceof Error ? err.message : "Error al conectar",
       }));
     }
-  }, []);
+  }, [addEuroToken]);
 
   const disconnect = useCallback(() => {
     setState({
@@ -123,7 +144,7 @@ export function useWallet() {
     };
   }, [connect]);
 
-  return { ...state, connect, disconnect, isCorrectChain };
+  return { ...state, connect, disconnect, addEuroToken, isCorrectChain };
 }
 
 declare global {

@@ -324,6 +324,16 @@ export default function EuroTokenPurchase() {
                     </span>
                   </div>
                 </div>
+                {wallet.address && (
+                  <button
+                    onClick={wallet.addEuroToken}
+                    className="mt-4 w-full py-2 text-xs font-bold uppercase tracking-wider
+                               border border-nvidia-green text-nvidia-green
+                               hover:bg-nvidia-green hover:text-ink transition-colors"
+                  >
+                    + Agregar EURT a MetaMask
+                  </button>
+                )}
               </div>
 
               <div className="border border-hairline bg-canvas p-6">
