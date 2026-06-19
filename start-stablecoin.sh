@@ -83,10 +83,16 @@ EOF
   # Inyectar keys de Stripe desde .env.stripe (no commiteado)
   STRIPE_ENV="$ROOT_DIR/.env.stripe"
   if [ -f "$STRIPE_ENV" ]; then
-    source "$STRIPE_ENV"
-    sed -i '' "s|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=.*|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|" "$ENV_FILE"
-    sed -i '' "s|STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY|" "$ENV_FILE"
-    sed -i '' "s|STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET|" "$ENV_FILE"
+    while IFS='=' read -r key value; do
+      [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+      key=$(echo "$key" | xargs)
+      value=$(echo "$value" | xargs)
+      if grep -q "^${key}=" "$ENV_FILE"; then
+        sed -i '' "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+      else
+        echo "${key}=${value}" >> "$ENV_FILE"
+      fi
+    done < "$STRIPE_ENV"
     echo -e "${GREEN}[OK]${NC} Keys de Stripe inyectadas desde .env.stripe"
   else
     echo -e "${GREEN}[WARN]${NC} .env.stripe no encontrado. Crea el archivo en la raiz del proyecto con tus keys de Stripe."

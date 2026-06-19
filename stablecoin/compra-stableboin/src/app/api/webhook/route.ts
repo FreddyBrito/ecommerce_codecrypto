@@ -8,23 +8,34 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  console.log("Webhook received", {
+    hasSignature: !!sig,
+    hasWebhookSecret: !!webhookSecret,
+    webhookSecretPrefix: webhookSecret ? webhookSecret.substring(0, 8) + "..." : "MISSING",
+    bodyLength: body.length,
+  });
 
   if (!sig) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
+  if (!webhookSecret) {
+    console.error("STRIPE_WEBHOOK_SECRET is not configured");
+    return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
+  }
+
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET || ""
-    );
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
+
+  console.log("Webhook event:", event.type);
 
   if (event.type === "payment_intent.succeeded") {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -35,6 +46,8 @@ export async function POST(request: NextRequest) {
       console.error("Missing metadata in payment intent:", paymentIntent.id);
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
     }
+
+    console.log(`Minting ${tokenAmount} EURT to ${walletAddress}`);
 
     try {
       const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
@@ -56,9 +69,7 @@ export async function POST(request: NextRequest) {
       const tx = await contract.mint(walletAddress, tokenAmountWei);
       const receipt = await tx.wait();
 
-      console.log(
-        `Minted ${tokenAmount} EURT to ${walletAddress} | TX: ${receipt?.hash}`
-      );
+      console.log(`Minted ${tokenAmount} EURT to ${walletAddress} | TX: ${receipt?.hash}`);
 
       return NextResponse.json({
         success: true,
