@@ -20,7 +20,7 @@ interface PurchaseState {
 
 export default function EuroTokenPurchase() {
   const wallet = useWallet();
-  const euroToken = useEuroToken(wallet.signer, wallet.address);
+  const euroToken = useEuroToken();
 
   const [purchase, setPurchase] = useState<PurchaseState>({
     step: "form",
@@ -35,7 +35,8 @@ export default function EuroTokenPurchase() {
     if (wallet.address) {
       euroToken.fetchBalance(wallet.address);
     }
-  }, [wallet.address, euroToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet.address]);
 
   const handlePurchase = useCallback(async (amount: number) => {
     if (!wallet.address) throw new Error("Wallet no conectada");
@@ -95,7 +96,8 @@ export default function EuroTokenPurchase() {
         }));
       }
     },
-    [wallet.address, purchase.amount, euroToken]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [wallet.address, purchase.amount]
   );
 
   const handlePaymentError = useCallback((error: string) => {
