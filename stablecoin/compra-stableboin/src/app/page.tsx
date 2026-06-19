@@ -62,42 +62,41 @@ export default function EuroTokenPurchase() {
   }, [wallet.address]);
 
   const handlePaymentSuccess = useCallback(
-    async (paymentIntentId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async (_paymentIntentId: string) => {
       setPurchase((s) => ({ ...s, step: "minting" }));
 
-      try {
-        const res = await fetch("/api/mint-tokens", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            walletAddress: wallet.address,
-            amount: purchase.amount,
-            paymentIntentId,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-
-        setPurchase((s) => ({
-          ...s,
-          step: "success",
-          txHash: data.txHash,
-        }));
-
-        if (wallet.address) {
-          euroToken.fetchBalance(wallet.address);
-        }
-      } catch (err) {
-        setPurchase((s) => ({
-          ...s,
-          step: "error",
-          errorMessage: err instanceof Error ? err.message : "Error al mintear tokens",
-        }));
+      if (!wallet.address) {
+        setPurchase((s) => ({ ...s, step: "error", errorMessage: "Wallet no conectada" }));
+        return;
       }
+
+      const prevBalance = parseFloat(euroToken.balance);
+      let attempts = 0;
+      const maxAttempts = 15;
+
+      const poll = async () => {
+        attempts++;
+        await euroToken.fetchBalance(wallet.address!);
+        const newBalance = parseFloat(euroToken.balance);
+
+        if (newBalance > prevBalance) {
+          setPurchase((s) => ({ ...s, step: "success" }));
+        } else if (attempts < maxAttempts) {
+          setTimeout(poll, 2000);
+        } else {
+          setPurchase((s) => ({
+            ...s,
+            step: "success",
+            txHash: "Pago recibido, los tokens se acreditaran en breve",
+          }));
+        }
+      };
+
+      setTimeout(poll, 3000);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [wallet.address, purchase.amount]
+    [wallet.address, euroToken.balance]
   );
 
   const handlePaymentError = useCallback((error: string) => {

@@ -71,6 +71,7 @@ else
     cat > "$ENV_FILE" <<EOF
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder
 STRIPE_SECRET_KEY=sk_test_placeholder
+STRIPE_WEBHOOK_SECRET=whsec_placeholder
 NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
 WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 NEXT_PUBLIC_CHAIN_ID=31337
@@ -85,6 +86,7 @@ EOF
     source "$STRIPE_ENV"
     sed -i '' "s|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=.*|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|" "$ENV_FILE"
     sed -i '' "s|STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY|" "$ENV_FILE"
+    sed -i '' "s|STRIPE_WEBHOOK_SECRET=.*|STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET|" "$ENV_FILE"
     echo -e "${GREEN}[OK]${NC} Keys de Stripe inyectadas desde .env.stripe"
   else
     echo -e "${GREEN}[WARN]${NC} .env.stripe no encontrado. Crea el archivo en la raiz del proyecto con tus keys de Stripe."
