@@ -28,7 +28,9 @@ export function useWallet() {
   const isCorrectChain = state.chainId === config.chainId;
 
   const connect = useCallback(async () => {
+    console.log("connect() called", { ethereum: !!window.ethereum, window: typeof window });
     if (typeof window === "undefined" || !window.ethereum) {
+      console.error("MetaMask not detected");
       setState((s) => ({ ...s, error: "MetaMask no esta instalado" }));
       return;
     }
@@ -37,6 +39,10 @@ export function useWallet() {
 
     try {
       const provider = new BrowserProvider(window.ethereum);
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
