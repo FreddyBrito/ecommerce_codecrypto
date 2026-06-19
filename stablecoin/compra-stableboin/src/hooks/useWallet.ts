@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
 import { config } from "@/lib/config";
 
@@ -22,6 +22,8 @@ export function useWallet() {
     isConnecting: false,
     error: null,
   });
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const isCorrectChain = state.chainId === config.chainId;
 
@@ -89,8 +91,15 @@ export function useWallet() {
     const handleAccountsChanged = (...args: unknown[]) => {
       const accounts = args[0] as string[];
       if (accounts.length === 0) {
-        disconnect();
-      } else if (state.signer) {
+        setState({
+          address: null,
+          signer: null,
+          chainId: null,
+          balance: "0",
+          isConnecting: false,
+          error: null,
+        });
+      } else if (!stateRef.current.address) {
         connect();
       }
     };
@@ -106,7 +115,7 @@ export function useWallet() {
       window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
       window.ethereum?.removeListener("chainChanged", handleChainChanged);
     };
-  }, [connect, disconnect, state.signer]);
+  }, [connect]);
 
   return { ...state, connect, disconnect, isCorrectChain };
 }
