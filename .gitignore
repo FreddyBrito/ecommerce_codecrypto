@@ -1,0 +1,10 @@
+# Secrets
+.env.stripe
+
+# Dependencies
+node_modules/
+lib/
+
+# Build
+out/
+.cache/

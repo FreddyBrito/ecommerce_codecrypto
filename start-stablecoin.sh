@@ -65,11 +65,29 @@ else
   ENV_FILE="$FRONTEND_DIR/.env.local"
 
   if [ -f "$ENV_FILE" ]; then
-    sed -i '' "s/NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=.*/NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS/" "$ENV_FILE"
+    sed -i '' "s|NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=.*|NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS|" "$ENV_FILE"
     echo -e "${GREEN}[OK]${NC} .env.local actualizado con direccion del contrato"
   else
-    echo "NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS" > "$ENV_FILE"
+    cat > "$ENV_FILE" <<EOF
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder
+STRIPE_SECRET_KEY=sk_test_placeholder
+NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
+WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+NEXT_PUBLIC_CHAIN_ID=31337
+NEXT_PUBLIC_RPC_URL=http://localhost:8545
+EOF
     echo -e "${GREEN}[OK]${NC} .env.local creado"
+  fi
+
+  # Inyectar keys de Stripe desde .env.stripe (no commiteado)
+  STRIPE_ENV="$ROOT_DIR/.env.stripe"
+  if [ -f "$STRIPE_ENV" ]; then
+    source "$STRIPE_ENV"
+    sed -i '' "s|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=.*|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|" "$ENV_FILE"
+    sed -i '' "s|STRIPE_SECRET_KEY=.*|STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY|" "$ENV_FILE"
+    echo -e "${GREEN}[OK]${NC} Keys de Stripe inyectadas desde .env.stripe"
+  else
+    echo -e "${GREEN}[WARN]${NC} .env.stripe no encontrado. Crea el archivo en la raiz del proyecto con tus keys de Stripe."
   fi
 fi
 
