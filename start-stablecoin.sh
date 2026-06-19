@@ -2,7 +2,7 @@
 
 # ============================================================
 # Script para levantar los proyectos de Stablecoin
-# EuroToken SC + Compra Stablecoin Frontend
+# EuroToken SC + Compra Stablecoin + Pasarela de Pago
 # ============================================================
 
 set -e
@@ -10,6 +10,7 @@ set -e
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SC_DIR="$ROOT_DIR/stablecoin/sc"
 FRONTEND_DIR="$ROOT_DIR/stablecoin/compra-stableboin"
+PASARELA_DIR="$ROOT_DIR/stablecoin/pasarela-de-pago"
 
 # Colores
 GREEN='\033[0;32m'
@@ -60,29 +61,29 @@ if [ -z "$CONTRACT_ADDRESS" ]; then
 else
   echo -e "${GREEN}[OK]${NC} EuroToken desplegado en: $CONTRACT_ADDRESS"
 
-  # 4. Actualizar .env.local del frontend
-  echo -e "${GREEN}[4/4]${NC} Actualizando .env.local del frontend..."
-  ENV_FILE="$FRONTEND_DIR/.env.local"
+  # 4. Actualizar .env.local de ambos frontends
+  echo -e "${GREEN}[4/4]${NC} Actualizando .env.local de los frontends..."
 
-  if [ -f "$ENV_FILE" ]; then
-    sed -i '' "s|NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=.*|NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS|" "$ENV_FILE"
-    echo -e "${GREEN}[OK]${NC} .env.local actualizado con direccion del contrato"
-  else
-    cat > "$ENV_FILE" <<EOF
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder
-STRIPE_SECRET_KEY=sk_test_placeholder
-STRIPE_WEBHOOK_SECRET=whsec_placeholder
+  for DIR in "$FRONTEND_DIR" "$PASARELA_DIR"; do
+    ENV_FILE="$DIR/.env.local"
+
+    if [ -f "$ENV_FILE" ]; then
+      sed -i '' "s|NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=.*|NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS|" "$ENV_FILE"
+      echo -e "${GREEN}[OK]${NC} $(basename $DIR)/.env.local actualizado"
+    else
+      cat > "$ENV_FILE" <<EOF
 NEXT_PUBLIC_EUROTOKEN_CONTRACT_ADDRESS=$CONTRACT_ADDRESS
-WALLET_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 NEXT_PUBLIC_CHAIN_ID=31337
 NEXT_PUBLIC_RPC_URL=http://localhost:8545
 EOF
-    echo -e "${GREEN}[OK]${NC} .env.local creado"
-  fi
+      echo -e "${GREEN}[OK]${NC} $(basename $DIR)/.env.local creado"
+    fi
+  done
 
   # Inyectar keys de Stripe desde .env.stripe (no commiteado)
   STRIPE_ENV="$ROOT_DIR/.env.stripe"
   if [ -f "$STRIPE_ENV" ]; then
+    ENV_FILE="$FRONTEND_DIR/.env.local"
     while IFS='=' read -r key value; do
       [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
       key=$(echo "$key" | xargs)
@@ -93,9 +94,9 @@ EOF
         echo "${key}=${value}" >> "$ENV_FILE"
       fi
     done < "$STRIPE_ENV"
-    echo -e "${GREEN}[OK]${NC} Keys de Stripe inyectadas desde .env.stripe"
+    echo -e "${GREEN}[OK]${NC} Keys de Stripe inyectadas en compra-stableboin"
   else
-    echo -e "${GREEN}[WARN]${NC} .env.stripe no encontrado. Crea el archivo en la raiz del proyecto con tus keys de Stripe."
+    echo -e "${GREEN}[WARN]${NC} .env.stripe no encontrado."
   fi
 fi
 
@@ -104,14 +105,28 @@ echo -e "${BLACK}========================================${NC}"
 echo -e "${GREEN}  Proyectos listos!${NC}"
 echo -e "${BLACK}========================================${NC}"
 echo ""
-echo "  Anvil:          http://localhost:8545"
-echo "  Frontend:       http://localhost:3000"
+echo "  Anvil:              http://localhost:8545"
+echo "  Compra Stablecoin:  http://localhost:3000"
+echo "  Pasarela de Pago:   http://localhost:6002"
 echo ""
-echo "  Contrato:       ${CONTRACT_ADDRESS:-revisa /tmp/eurotoken-deploy.log}"
+echo "  Contrato:           ${CONTRACT_ADDRESS:-revisa /tmp/eurotoken-deploy.log}"
 echo ""
-echo -e "${GREEN}  Iniciando frontend...${NC}"
+echo -e "${GREEN}  Iniciando frontends...${NC}"
 echo ""
 
-# 5. Iniciar frontend
+# 5. Iniciar ambos frontends en background
 cd "$FRONTEND_DIR"
-npm run dev
+PORT=3000 npm run dev &
+FRONTEND_PID=$!
+
+cd "$PASARELA_DIR"
+PORT=6002 npm run dev &
+PASARELA_PID=$!
+
+echo "  Frontend PID:  $FRONTEND_PID"
+echo "  Pasarela PID:  $PASARELA_PID"
+echo ""
+echo "Presiona Ctrl+C para detener todos los servicios"
+
+# Esperar a que terminen
+wait
