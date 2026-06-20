@@ -54,6 +54,7 @@ echo -e "${GREEN}[OK]${NC} Ecommerce compilado"
 # 3. Deploy EuroToken
 echo -e "${GREEN}[3/5]${NC} Desplegando EuroToken en Anvil..."
 
+cd "$SC_DIR"
 PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
 forge script script/DeployEuroToken.s.sol \
   --rpc-url http://localhost:8545 \
