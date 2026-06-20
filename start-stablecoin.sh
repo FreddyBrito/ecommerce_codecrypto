@@ -13,6 +13,7 @@ SC_ECOMMERCE_DIR="$ROOT_DIR/sc-ecommerce"
 FRONTEND_DIR="$ROOT_DIR/stablecoin/compra-stableboin"
 PASARELA_DIR="$ROOT_DIR/stablecoin/pasarela-de-pago"
 ADMIN_DIR="$ROOT_DIR/stablecoin/web-admin"
+CUSTOMER_DIR="$ROOT_DIR/stablecoin/web-customer"
 
 # Colores
 GREEN='\033[0;32m'
@@ -91,7 +92,7 @@ fi
 # 5. Actualizar .env.local de todos los frontends
 echo -e "${GREEN}[5/5]${NC} Actualizando .env.local de los frontends..."
 
-for DIR in "$FRONTEND_DIR" "$PASARELA_DIR" "$ADMIN_DIR"; do
+for DIR in "$FRONTEND_DIR" "$PASARELA_DIR" "$ADMIN_DIR" "$CUSTOMER_DIR"; do
   ENV_FILE="$DIR/.env.local"
 
   if [ -f "$ENV_FILE" ]; then
@@ -145,6 +146,7 @@ echo "  Anvil:              http://localhost:8545"
 echo "  Compra Stablecoin:  http://localhost:3000"
 echo "  Pasarela de Pago:   http://localhost:6002"
 echo "  Web Admin:          http://localhost:6003"
+echo "  Web Customer:       http://localhost:6004"
 echo ""
 echo "  EuroToken:          ${EUROTOKEN_ADDRESS:-revisa /tmp/eurotoken-deploy.log}"
 echo "  Ecommerce:          ${ECOMMERCE_ADDRESS:-revisa /tmp/ecommerce-deploy.log}"
@@ -165,9 +167,14 @@ cd "$ADMIN_DIR"
 PORT=6003 npm run dev &
 ADMIN_PID=$!
 
+cd "$CUSTOMER_DIR"
+PORT=6004 npm run dev &
+CUSTOMER_PID=$!
+
 echo "  Frontend PID:   $FRONTEND_PID"
 echo "  Pasarela PID:   $PASARELA_PID"
 echo "  Admin PID:      $ADMIN_PID"
+echo "  Customer PID:   $CUSTOMER_PID"
 echo ""
 echo "Presiona Ctrl+C para detener todos los servicios"
 
